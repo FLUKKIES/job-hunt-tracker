@@ -36,7 +36,7 @@ export class UsersService {
                 { username: identifier },
                 { email: identifier }
             ]
-        }).exec();
+        }).lean().exec();
     }
 
     async create(dto: RegisterDto): Promise<UserDocument | null> {

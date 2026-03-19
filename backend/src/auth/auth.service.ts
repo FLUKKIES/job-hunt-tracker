@@ -8,14 +8,13 @@ import { JwtService } from '@nestjs/jwt';
 @Injectable()
 export class AuthService {
     constructor(
-        private userService: UsersService,
+        private usersService: UsersService,
         private readonly jwtService: JwtService
     ) { }
 
     async signin(dto: LoginDto) {
         const { identifier, password } = dto;
-
-        const user = await this.userService.findByEmailOrUsername(identifier);
+        const user = await this.usersService.findByEmailOrUsername(identifier);
 
         if (!user) throw new UnauthorizedException('อีเมล/ชื่อผู้ใช้งาน หรือรหัสผ่านไม่ถูกต้อง');
 
@@ -31,7 +30,7 @@ export class AuthService {
             exp (Expiration Time): Token หมดอายุเมื่อไหร่
             aud (Audience): Token นี้สร้างมาให้ระบบไหนใช้
         */
-        const payload = { sub: user.id, username: user.username }
+        const payload = { sub: user._id, username: user.username }
 
         return {
             access_token: this.jwtService.sign(payload)
@@ -41,9 +40,9 @@ export class AuthService {
     async signup(dto: RegisterDto) {
 
         // Check email is existing?
-        if (await this.userService.findByEmail(dto.email)) {
+        if (await this.usersService.findByEmail(dto.email)) {
             throw new ConflictException('Email already in use')
-        } else if (await this.userService.findByUsername(dto.username)) {
+        } else if (await this.usersService.findByUsername(dto.username)) {
             throw new ConflictException('Username already in use')
         }
 
@@ -52,6 +51,6 @@ export class AuthService {
         const passwordHashed = await bcrypt.hash(dto.password, salt);
 
         // Create User account
-        return await this.userService.create({ ...dto, password: passwordHashed });
+        return await this.usersService.create({ ...dto, password: passwordHashed });
     }
 }
