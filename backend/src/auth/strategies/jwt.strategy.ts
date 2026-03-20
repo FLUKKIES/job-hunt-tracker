@@ -20,6 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             ignoreExpiration: false,
             secretOrKey: configService.get<string>("ACCESS_TOKEN_SECRET")!,
         });
+
     }
 
     // มันจะเช็ค token เบื้องหลัง เช่น เช็ค exp ก่อนจะส่งให้ validate()

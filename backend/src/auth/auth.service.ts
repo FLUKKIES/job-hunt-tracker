@@ -49,6 +49,10 @@ export class AuthService {
         return await this.usersService.create({ ...dto, password: passwordHashed });
     }
 
+    async logout(userId: string) {
+        await this.usersService.update(userId, { refreshToken: null });
+    }
+
 
     // ฟังก์ชันตัวช่วย: สร้าง Token 2 ใบพร้อมกัน
     private async getTokens(userId: string, username: string) {
