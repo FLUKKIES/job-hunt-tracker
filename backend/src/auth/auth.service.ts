@@ -5,6 +5,8 @@ import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { UserDocument } from 'src/users/schemas/user.schema';
 
 @Injectable()
 export class AuthService {
@@ -24,7 +26,7 @@ export class AuthService {
         const userId = user._id.toString();
 
         //gen tokens
-        const tokens = await this.getTokens(userId, user.username)
+        const tokens = await this.getTokens(user);
 
         // เอา Refresh Token ไป Hash แล้วเซฟลง DB
         await this.updateRefreshToken(userId, tokens.refresh_token)
@@ -55,7 +57,7 @@ export class AuthService {
 
 
     // ฟังก์ชันตัวช่วย: สร้าง Token 2 ใบพร้อมกัน
-    private async getTokens(userId: string, username: string) {
+    private async getTokens(user: UserDocument) {
         /* 
             sub (Subject): รหัสระบุตัวตนหลัก (ID ของ User)
             iss (Issuer): ใครเป็นคนออก Token นี้ (เช่น ชื่อ Server หรือ Domain ของเรา)
@@ -63,17 +65,22 @@ export class AuthService {
             exp (Expiration Time): Token หมดอายุเมื่อไหร่
             aud (Audience): Token นี้สร้างมาให้ระบบไหนใช้
         */
-        const payload = { sub: userId, username: username };
+        const payload: JwtPayload = {
+            sub: user._id.toString(),
+            username: user.username,
+            email: user.email,
+            role: user.role
+        };
 
         const [accessToken, refreshToken] = await Promise.all([
             // ใบที่ 1: Access Token (อายุสั้น )
             this.jwtService.signAsync(payload, {
-                secret: this.configService.get("ACCESS_TOKEN_SECRET"), 
+                secret: this.configService.get("ACCESS_TOKEN_SECRET"),
                 expiresIn: this.configService.get("ACCESS_TOKEN_EXPIRATION"),
             }),
             // ใบที่ 2: Refresh Token (อายุยาว )
             this.jwtService.signAsync(payload, {
-                secret: this.configService.get("REFRESH_TOKEN_SECRET"), 
+                secret: this.configService.get("REFRESH_TOKEN_SECRET"),
                 expiresIn: this.configService.get("REFRESH_TOKEN_EXPIRATION"),
             }),
         ]);
@@ -97,7 +104,7 @@ export class AuthService {
         const isRefreshTokenMatch = await bcrypt.compare(incomingRefreshToken, user.refreshToken);
         if (!isRefreshTokenMatch) throw new ForbiddenException('ไม่อนุญาตให้เข้าถึง (refresh token not match)');
 
-        const newTokens = await this.getTokens(userId, user.username);
+        const newTokens = await this.getTokens(user);
         await this.updateRefreshToken(userId, newTokens.refresh_token);
 
         return newTokens
