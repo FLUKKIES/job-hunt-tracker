@@ -20,4 +20,5 @@ export class RegisterDto {
 
     @IsString()
     readonly lastName
+
 }
